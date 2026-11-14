@@ -31,6 +31,17 @@ jobs:
         run: |
           cp firmware/lv_conf.h "$HOME/Arduino/libraries/lv_conf.h"
 
+      - name: Prepare clean sketch
+        run: |
+          echo "=== REAL FILES IN firmware/ ==="
+          ls -la firmware
+          mkdir -p sketch
+          cp firmware/*.h sketch/
+          cp firmware/*.cpp sketch/
+          cp firmware/*.ino sketch/sketch.ino
+          echo "=== CLEAN SKETCH ==="
+          ls -la sketch
+
       - name: Build firmware
         run: |
           arduino-cli compile \
@@ -38,7 +49,7 @@ jobs:
             --warnings default \
             --build-path ./build \
             --output-dir ./out \
-            firmware
+            sketch
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
