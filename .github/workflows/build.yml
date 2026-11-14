@@ -33,12 +33,12 @@ jobs:
 
       - name: Prepare clean sketch
         run: |
-          echo "=== REAL FILES IN firmware/ ==="
-          ls -la firmware
           mkdir -p sketch
           cp firmware/*.h sketch/
           cp firmware/*.cpp sketch/
-          cp firmware/*.ino sketch/sketch.ino
+          MAIN=$(find firmware -maxdepth 1 -type f ! -name '*.h' ! -name '*.cpp' | head -n 1)
+          echo "MAIN FILE: $MAIN"
+          cp "$MAIN" sketch/sketch.ino
           echo "=== CLEAN SKETCH ==="
           ls -la sketch
 
