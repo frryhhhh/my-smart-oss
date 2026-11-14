@@ -1,2 +1,37 @@
-// firmware.ino - точка входа
-// Весь код в соседних .cpp файлах
+// firmware.ino - точка входа SmartOS
+#include "hardware.h"
+#include "config.h"
+
+void setup() {
+    HW::init();
+
+    // === ЗАГРУЗОЧНЫЙ ЭКРАН (boot splash) ===
+    lv_obj_t* scr = lv_scr_act();
+    lv_obj_set_style_bg_color(scr, lv_color_hex(0xF5F3FF), 0);
+    lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, 0);
+
+    lv_obj_t* logo = lv_label_create(scr);
+    lv_label_set_text(logo, "SmartOS");
+    lv_obj_set_style_text_color(logo, lv_color_hex(0x6D28D9), 0);
+    lv_obj_set_style_text_font(logo, &lv_font_montserrat_36, 0);
+    lv_obj_align(logo, LV_ALIGN_CENTER, 0, -40);
+
+    lv_obj_t* ver = lv_label_create(scr);
+    lv_label_set_text(ver, "v" FIRMWARE_VERSION);
+    lv_obj_set_style_text_color(ver, lv_color_hex(0x6B678A), 0);
+    lv_obj_set_style_text_font(ver, &lv_font_montserrat_14, 0);
+    lv_obj_align(ver, LV_ALIGN_CENTER, 0, 0);
+
+    lv_obj_t* spin = lv_spinner_create(scr, 1000, 60);
+    lv_obj_set_size(spin, 60, 60);
+    lv_obj_align(spin, LV_ALIGN_CENTER, 0, 60);
+    lv_obj_set_style_arc_color(spin, lv_color_hex(0x9333EA), LV_PART_INDICATOR);
+    lv_obj_set_style_arc_width(spin, 6, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_color(spin, lv_color_hex(0xE9E5F5), LV_PART_MAIN);
+    lv_obj_set_style_arc_width(spin, 6, LV_PART_MAIN);
+}
+
+void loop() {
+    HW::lvglTick();
+    delay(1);
+}
