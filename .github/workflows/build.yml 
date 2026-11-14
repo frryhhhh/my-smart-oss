@@ -27,10 +27,10 @@ jobs:
       - name: Install libraries
         run: |
           arduino-cli lib install "lvgl@8.3.11"
-          arduino-cli lib install "LovyanGFX@^1.1.16"
-          arduino-cli lib install "JPEGDEC@^1.2.3"
-          arduino-cli lib install "ArduinoJson@^7.0.0"
-          arduino-cli lib install "AnimatedGIF@^1.5.0"
+          arduino-cli lib install "LovyanGFX@1.1.16"
+          arduino-cli lib install "JPEGDEC"
+          arduino-cli lib install "ArduinoJson"
+          arduino-cli lib install "AnimatedGIF"
 
       - name: Copy LVGL config
         run: |
@@ -39,7 +39,7 @@ jobs:
       - name: Build firmware
         run: |
           arduino-cli compile \
-            --fqbn esp32:esp32:esp32s3:CDCOnBoot=cdc,PartitionScheme=huge_app,FlashMode=qio,FlashSize=16M,PSRAM=opi,UploadMode=hwcdc \
+            --fqbn esp32:esp32:esp32s3:CDCOnBoot=cdc,PartitionScheme=huge_app,FlashMode=qio,FlashSize=16M,PSRAM=opi \
             --warnings default \
             --build-path ./build \
             --output-dir ./out \
