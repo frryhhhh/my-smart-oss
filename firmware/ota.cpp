@@ -38,8 +38,8 @@ static void handleWifi() {
     String pass = server.arg("pass");
     Preferences prefs;
     prefs.begin("smartos", false);
-    prefs.putString("wifi_ssid", ssid);
-    prefs.putString("wifi_pass", pass);
+    prefs.putString("wifi_ssid", ssid.c_str());
+    prefs.putString("wifi_pass", pass.c_str());
     prefs.end();
     server.send(200, "text/plain", "Saved. Rebooting...");
     delay(500);
