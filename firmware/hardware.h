@@ -35,4 +35,5 @@ namespace HW {
     void psramFree(void* ptr);
 
     void lvglTick();
+    void pushLine(int32_t x, int32_t y, int32_t w, int32_t h, const uint16_t* data);
 }
