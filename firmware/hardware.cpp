@@ -331,7 +331,11 @@ void init() {
     initSD();
 }
 
-void lvglTick() {
+void pushLine(int32_t x, int32_t y, int32_t w, int32_t h, const uint16_t* data) {
+    tft.pushImage(x, y, w, h, data);
+}
+
+void lvglTick() {  
     lv_timer_handler();
     updateButtons();
 }
