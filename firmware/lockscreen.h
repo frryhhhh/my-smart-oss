@@ -1,4 +1,4 @@
-э#pragma once
+#pragma once
 #include <lvgl.h>
 
 namespace Lockscreen {
