@@ -77,8 +77,8 @@ static void drawProceduralFrame() {
             uint8_t b = (uint8_t)(21 + v * 180);
             lineBuf[x] = rgb565((r << 16) | (g << 8) | b);
         }
-        tft.pushImage(0, y, W, 1, lineBuf);
-        tft.pushImage(0, y + 1, W, 1, lineBuf);
+        HW::pushLine(0, y, W, 1, lineBuf);
+        HW::pushLine(0, y + 1, W, 1, lineBuf);
     }
 }
 
