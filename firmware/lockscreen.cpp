@@ -1,6 +1,6 @@
+#include "hardware.h"
 #include "lockscreen.h"
 #include "theme.h"
-#include "hardware.h"
 #include "config.h"
 #include <math.h>
 
