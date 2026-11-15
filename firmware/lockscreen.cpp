@@ -78,7 +78,7 @@ static void drawProceduralFrame() {
             lineBuf[x] = rgb565((r << 16) | (g << 8) | b);
         }
         HW::pushLine(0, y, W, 1, lineBuf);
-        HW::pushLine(0, y + 1, W, 1, lineBuf);
+            HW::pushLine(0, y + 1, W, 1, lineBuf);
     }
 }
 
