@@ -1,4 +1,5 @@
 #include "ota.h"
+#include "hardware.h"
 #include "config.h"
 #include <WiFi.h>
 #include <WebServer.h>
