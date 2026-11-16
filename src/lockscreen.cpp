@@ -1,6 +1,5 @@
 #include "lockscreen.h"
 #include "config.h"
-#include "font_cyrillic.h"
 
 #include <lvgl.h>
 #include <time.h>
@@ -63,9 +62,6 @@ static void update_clock_cb(lv_timer_t *t) {
 // ─── Установка обоев ────────────────────────────────
 void lockscreen_set_wallpaper(const char *path) {
   if (!wallpaper_img) return;
-
-  // Если это видео .mjpeg — здесь позже подключается декодер кадров.
-  // Пока поддерживаем статичные PNG/JPG с SD-карты.
   lv_img_set_src(wallpaper_img, path);
   lv_obj_align(wallpaper_img, LV_ALIGN_CENTER, 0, 0);
 }
@@ -78,28 +74,28 @@ void lockscreen_create() {
   lv_obj_set_style_bg_opa(scr_lock, LV_OPA_COVER, 0);
   lv_obj_clear_flag(scr_lock, LV_OBJ_FLAG_SCROLLABLE);
 
-  // 2. Обои (картинка с SD; путь задаётся в настройках)
+  // 2. Обои
   wallpaper_img = lv_img_create(scr_lock);
   lv_obj_align(wallpaper_img, LV_ALIGN_CENTER, 0, 0);
 
-  // 3. Большие часы
+  // 3. Большие часы (Временный шрифт)
   clock_label = lv_label_create(scr_lock);
-  lv_obj_set_style_text_font(clock_label, FONT_LARGE, 0);
+  lv_obj_set_style_text_font(clock_label, &lv_font_montserrat_28, 0); 
   lv_obj_set_style_text_color(clock_label, CLR_TEXT, 0);
   lv_obj_align(clock_label, LV_ALIGN_CENTER, 0, -40);
   lv_label_set_text(clock_label, "12:00");
 
-  // 4. Дата
+  // 4. Дата (Временный шрифт)
   date_label = lv_label_create(scr_lock);
-  lv_obj_set_style_text_font(date_label, FONT_NORMAL, 0);
+  lv_obj_set_style_text_font(date_label, &lv_font_montserrat_20, 0); 
   lv_obj_set_style_text_color(date_label, CLR_TEXT_MUT, 0);
   lv_obj_align(date_label, LV_ALIGN_CENTER, 0, 10);
   lv_label_set_text(date_label, "Загрузка...");
 
-  // 5. Dynamic Island (чёрная капсула)
+  // 5. Dynamic Island (Временный шрифт)
   island = lv_obj_create(scr_lock);
   lv_obj_set_size(island, 200, 36);
-  lv_obj_align(island, LV_ALIGN_TOP_MID, 0, -40); // изначально скрыта
+  lv_obj_align(island, LV_ALIGN_TOP_MID, 0, -40); 
   lv_obj_set_style_bg_color(island, lv_color_hex(0x000000), 0);
   lv_obj_set_style_bg_opa(island, LV_OPA_COVER, 0);
   lv_obj_set_style_radius(island, 18, 0);
@@ -107,7 +103,7 @@ void lockscreen_create() {
   lv_obj_clear_flag(island, LV_OBJ_FLAG_SCROLLABLE);
 
   island_label = lv_label_create(island);
-  lv_obj_set_style_text_font(island_label, FONT_SMALL, 0);
+  lv_obj_set_style_text_font(island_label, &lv_font_montserrat_14, 0); 
   lv_obj_set_style_text_color(island_label, lv_color_hex(0xFFFFFF), 0);
   lv_obj_center(island_label);
   lv_label_set_text(island_label, "SmartOS");
