@@ -6,7 +6,6 @@
 #include "hardware.h"
 #include "lockscreen.h"
 #include "ota.h"
-#include "font_cyrillic.h"
 
 // ─── Wi-Fi (замените на свои) ───────────────────────
 const char *WIFI_SSID = "YOUR_SSID";
