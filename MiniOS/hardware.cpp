@@ -111,6 +111,10 @@ static void flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
 }
 
 void hardware_init() {
+    // Виртуальный GND
+    pinMode(VIRTUAL_GND, OUTPUT);
+    digitalWrite(VIRTUAL_GND, LOW);
+
     dma_buf[0] = (uint16_t *)heap_caps_malloc(320 * 40 * 2, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
     dma_buf[1] = (uint16_t *)heap_caps_malloc(320 * 40 * 2, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
     tft.init();
