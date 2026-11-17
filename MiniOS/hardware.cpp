@@ -54,7 +54,7 @@ LGFX::LGFX(void) {
 
 bool LGFX::init(void) {
     lgfx::LGFX_Device::init();
-    setRotation(0);
+    setRotation(1);  // горизонтально по умолчанию
     setBrightness(DEFAULT_BRIGHTNESS);
     return true;
 }
@@ -62,11 +62,11 @@ bool LGFX::init(void) {
 LGFX tft;
 lv_display_t *lv_disp = nullptr;
 
-// ==== DMA-буферы во внутренней RAM ====
+// ==== DMA-буферы ====
 uint16_t *dma_buf[2] = {nullptr, nullptr};
 uint8_t active_buf = 0;
 
-// ==== Подсветка (через дисплей, не трогаем ШИМ напрямую) ====
+// ==== Подсветка ====
 static uint8_t current_brightness = DEFAULT_BRIGHTNESS;
 
 void backlight_init() {
@@ -129,12 +129,15 @@ Orientation current_orientation = ORIENT_LANDSCAPE;
 
 void orientation_set(Orientation o) {
     current_orientation = o;
-    tft.setRotation((int)o);
+    // rotation: 0=верт, 1=гориз, 2=верт_180, 3=гориз_180
+    int rot = (int)o;
+    tft.setRotation(rot);
+    
     if (lv_disp) {
         if (o == ORIENT_LANDSCAPE || o == ORIENT_LANDSCAPE_180) {
-            lv_display_set_resolution(lv_disp, DISP_W, DISP_H);
+            lv_display_set_resolution(lv_disp, DISP_H, DISP_W);  // 320×240
         } else {
-            lv_display_set_resolution(lv_disp, DISP_H, DISP_W);
+            lv_display_set_resolution(lv_disp, DISP_W, DISP_H);  // 240×320
         }
     }
 }
@@ -143,7 +146,7 @@ Orientation orientation_get() {
     return current_orientation;
 }
 
-// ==== Отрисовка буфера LVGL на дисплей ====
+// ==== Отрисовка ====
 static void flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
     uint16_t *buf = (uint16_t *)px_map;
     int32_t w = lv_area_get_width(area);
@@ -155,7 +158,7 @@ static void flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
     lv_display_flush_ready(disp);
 }
 
-// ==== Инициализация всего железа ====
+// ==== Инициализация ====
 void hardware_init() {
     dma_buf[0] = (uint16_t *)heap_caps_malloc(DMA_BUF_SIZE, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
     dma_buf[1] = (uint16_t *)heap_caps_malloc(DMA_BUF_SIZE, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
@@ -169,7 +172,8 @@ void hardware_init() {
     buttons_init();
 
     lv_init();
-    lv_disp = lv_display_create(DISP_W, DISP_H);
+    // По умолчанию горизонтальная ориентация: 320×240
+    lv_disp = lv_display_create(DISP_H, DISP_W);
     lv_display_set_flush_cb(lv_disp, flush_cb);
     lv_display_set_buffers(lv_disp, dma_buf[0], dma_buf[1], DMA_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
 
