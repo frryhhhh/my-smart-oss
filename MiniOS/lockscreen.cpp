@@ -1,4 +1,5 @@
 #include "lockscreen.h"
+#include "wifi_mgr.h"
 #include "config.h"
 #include "theme.h"
 #include <WiFi.h>
@@ -14,7 +15,6 @@ static bool locked = true;
 static uint32_t last_sync = 0;
 static lv_anim_t island_anim;
 
-// Анимация пульсации Dynamic Island
 static void island_pulse_cb(void *var, int32_t v) {
     lv_obj_set_style_bg_opa((lv_obj_t*)var, v, 0);
 }
@@ -30,7 +30,6 @@ static void start_island_animation() {
     lv_anim_start(&island_anim);
 }
 
-// Fade-in анимация для объекта
 static void fade_in(lv_obj_t *obj, uint32_t delay_ms) {
     lv_obj_set_style_opa(obj, 0, 0);
     lv_anim_t a;
@@ -44,10 +43,8 @@ static void fade_in(lv_obj_t *obj, uint32_t delay_ms) {
 }
 
 void lockscreen_init() {
-    // Тёмный фон с градиентом (имитация через цвет)
     lv_obj_set_style_bg_color(lv_scr_act(), lv_color_hex(0x0a0a1a), 0);
     
-    // Dynamic Island сверху
     island_obj = lv_obj_create(lv_scr_act());
     lv_obj_set_size(island_obj, 100, 22);
     lv_obj_set_style_bg_color(island_obj, lv_color_black(), 0);
@@ -63,7 +60,6 @@ void lockscreen_init() {
     lv_obj_set_style_text_font(island_icon, &lv_font_montserrat_14, 0);
     lv_obj_center(island_icon);
     
-    // Заголовок MiniOS
     title_label = lv_label_create(lv_scr_act());
     lv_label_set_text(title_label, "MiniOS");
     lv_obj_set_style_text_font(title_label, &lv_font_montserrat_24, 0);
@@ -71,7 +67,6 @@ void lockscreen_init() {
     lv_obj_set_style_text_opa(title_label, 0, 0);
     lv_obj_align(title_label, LV_ALIGN_TOP_MID, 0, 50);
     
-    // Время (большие цифры)
     time_label = lv_label_create(lv_scr_act());
     lv_label_set_text(time_label, "--:--");
     lv_obj_set_style_text_font(time_label, &lv_font_montserrat_48, 0);
@@ -79,7 +74,6 @@ void lockscreen_init() {
     lv_obj_set_style_text_opa(time_label, 0, 0);
     lv_obj_align(time_label, LV_ALIGN_CENTER, 0, -10);
     
-    // Дата
     date_label = lv_label_create(lv_scr_act());
     lv_label_set_text(date_label, "---");
     lv_obj_set_style_text_font(date_label, &lv_font_montserrat_14, 0);
@@ -87,7 +81,6 @@ void lockscreen_init() {
     lv_obj_set_style_text_opa(date_label, 0, 0);
     lv_obj_align(date_label, LV_ALIGN_CENTER, 0, 35);
     
-    // Статус внизу
     status_label = lv_label_create(lv_scr_act());
     lv_label_set_text(status_label, "");
     lv_obj_set_style_text_font(status_label, &lv_font_montserrat_14, 0);
@@ -95,17 +88,14 @@ void lockscreen_init() {
     lv_obj_set_style_text_opa(status_label, 0, 0);
     lv_obj_align(status_label, LV_ALIGN_BOTTOM_MID, 0, -30);
     
-    // Запуск анимаций появления (каскадом)
     fade_in(island_obj, 100);
     fade_in(title_label, 300);
     fade_in(time_label, 500);
     fade_in(date_label, 700);
     fade_in(status_label, 900);
     
-    // Пульсация Dynamic Island
     start_island_animation();
     
-    // Синхронизация времени
     configTzTime("UTC0", "pool.ntp.org");
     last_sync = millis();
 }
@@ -123,12 +113,13 @@ void lockscreen_update() {
         lv_label_set_text(date_label, "Нет времени");
     }
     
-    // Статус Wi-Fi
     if (WiFi.status() == WL_CONNECTED) {
-        lv_label_set_text(status_label, LV_SYMBOL_WIFI " " + wifi_ip() + "  |  Нажми OK");
+        String txt = String(LV_SYMBOL_WIFI) + " " + wifi_ip() + "  |  Нажми OK";
+        lv_label_set_text(status_label, txt.c_str());
         lv_label_set_text(island_icon, LV_SYMBOL_WIFI);
     } else {
-        lv_label_set_text(status_label, LV_SYMBOL_WIFI " AP: " + String(AP_SSID) + "  |  Пароль: " + wifi_ap_pass());
+        String txt = String(LV_SYMBOL_WIFI) + " AP: " + String(AP_SSID) + "  |  Пароль: " + wifi_ap_pass();
+        lv_label_set_text(status_label, txt.c_str());
         lv_label_set_text(island_icon, LV_SYMBOL_CLOSE);
     }
 }
