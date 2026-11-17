@@ -83,26 +83,24 @@ jobs:
 
       - name: Сборка
         run: |
-          arduino-cli compile --fqbn "$FQBN" --export-binaries "$SKETCH" 2>&1 | tee build/build.log
-          echo "=== Файлы в $SKETCH/build ==="
-          find "$SKETCH/build" -name '*.bin' -type f 2>/dev/null || echo "Нет .bin"
+          mkdir -p build
+          arduino-cli compile --fqbn "$FQBN" --build-path "$PWD/build/compile" --export-binaries "$SKETCH" 2>&1 | tee build/build.log
+          echo "=== ВСЕ .bin В РАБОЧЕЙ ПАПКЕ (кроме ядра) ==="
+          find . -name '*.bin' -type f 2>/dev/null | grep -v arduino15 | grep -v libraries | head -50
+          echo "=== КОНЕЦ СПИСКА ==="
 
       - name: Упаковка образов
         run: |
           P="$ARDUINO_DIRECTORIES_DATA/packages/esp32/hardware/esp32/$CORE_VER"
           mkdir -p dist
-          
-          APP=$(find "$SKETCH/build" -name '*.ino.bin' -type f 2>/dev/null | head -1)
-          BOOT=$(find "$SKETCH/build" -name '*bootloader*.bin' -type f 2>/dev/null | head -1)
-          
+          APP=$(find . -name 'MiniOS.ino.bin' -type f 2>/dev/null | grep -v arduino15 | head -1)
+          BOOT=$(find . -name 'MiniOS.ino.bootloader.bin' -type f 2>/dev/null | grep -v arduino15 | head -1)
           echo "APP=$APP"
           echo "BOOT=$BOOT"
-          
           if [ -z "$APP" ] || [ -z "$BOOT" ]; then
-            echo "ОШИБКА: файлы прошивки не найдены. Смотри лог шага 'Сборка'."
+            echo "ОШИБКА: файлы прошивки не найдены. Пришли список из шага 'Сборка'."
             exit 1
           fi
-          
           cp "$APP" dist/firmware-ota.bin
           cp "$BOOT" dist/bootloader.bin
           cp build/partitions.bin dist/partitions.bin
