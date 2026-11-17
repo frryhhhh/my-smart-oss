@@ -19,7 +19,7 @@ env:
   ARDUINO_DIRECTORIES_USER: ${{ github.workspace }}/Arduino
   # Минимальный рабочий FQBN для ESP32-S3 с OPI PSRAM и Native USB. 
   # FlashFreq по умолчанию 80MHz, указывать не нужно, чтобы не ломать парсер.
-  FQBN: "esp32:esp32:esp32s3:FlashMode=qio,FlashSize=16MB,PSRAM=opi,PartitionScheme=default,CDCOnBoot=cdc,CPUFreq=240,DebugLevel=none"
+  FQBN: "esp32:esp32:esp32s3:FlashMode=qio,FlashSize=16M,PSRAM=opi,PartitionScheme=default,CDCOnBoot=cdc,CPUFreq=240,DebugLevel=none"
 
 jobs:
   build:
