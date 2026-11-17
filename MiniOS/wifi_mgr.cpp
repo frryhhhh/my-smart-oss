@@ -7,13 +7,6 @@ static NetState state = NET_OFF;
 static String ap_pass;
 static uint32_t start_t = 0;
 
-static String gen_pass() {
-    const char c[] = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
-    String p;
-    for (int i = 0; i < 10; i++) p += c[random(0, sizeof(c)-2)];
-    return p;
-}
-
 void wifi_init() {
     randomSeed(esp_random());
     Preferences p; p.begin("net", true);
@@ -21,29 +14,44 @@ void wifi_init() {
     String pass = p.getString("pass", "");
     ap_pass = p.getString("ap", "");
     p.end();
+    
+    // Если пароль не задан — используем фиксированный
     if (ap_pass.length() == 0) {
-        ap_pass = gen_pass();
-        p.begin("net", false); p.putString("ap", ap_pass); p.end();
+        ap_pass = "ahiralom";
+        p.begin("net", false);
+        p.putString("ap", ap_pass);
+        p.end();
     }
+    
+    Serial.println("=== Wi-Fi Info ===");
+    Serial.println("AP: " + String(AP_SSID));
+    Serial.println("Password: " + ap_pass);
+    Serial.println("==================");
+    
     if (ssid.length() == 0) {
         WiFi.mode(WIFI_AP);
         WiFi.softAP(AP_SSID, ap_pass.c_str());
         state = NET_AP;
+        Serial.println("AP mode started");
     } else {
         WiFi.mode(WIFI_STA);
         WiFi.begin(ssid.c_str(), pass.c_str());
         state = NET_CONNECTING;
         start_t = millis();
+        Serial.println("Connecting to: " + ssid);
     }
 }
 
 void wifi_loop() {
     if (state == NET_CONNECTING) {
-        if (WiFi.status() == WL_CONNECTED) state = NET_CLIENT;
-        else if (millis() - start_t > 20000) {
+        if (WiFi.status() == WL_CONNECTED) {
+            state = NET_CLIENT;
+            Serial.println("Connected! IP: " + WiFi.localIP().toString());
+        } else if (millis() - start_t > 20000) {
             WiFi.mode(WIFI_AP);
             WiFi.softAP(AP_SSID, ap_pass.c_str());
             state = NET_AP;
+            Serial.println("AP mode started (timeout)");
         }
     }
 }
