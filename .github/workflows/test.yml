@@ -83,29 +83,42 @@ jobs:
 
       - name: Сборка
         run: |
-          mkdir -p build
-          arduino-cli compile --fqbn "$FQBN" --build-path "$PWD/build/compile" --export-binaries "$SKETCH" 2>&1 | tee build/build.log
-          echo "=== ВСЕ .bin В РАБОЧЕЙ ПАПКЕ (кроме ядра) ==="
-          find . -name '*.bin' -type f 2>/dev/null | grep -v arduino15 | grep -v libraries | head -50
-          echo "=== КОНЕЦ СПИСКА ==="
+          mkdir -p build/compile
+          arduino-cli compile --fqbn "$FQBN" --build-path "$PWD/build/compile" "$SKETCH" 2>&1 | tee build/build.log
+          echo "=== ВСЕ ФАЙЛЫ В build/compile ==="
+          find build/compile -type f -name '*.bin' | sort
+          echo "=== КОНЕЦ ==="
 
       - name: Упаковка образов
         run: |
           P="$ARDUINO_DIRECTORIES_DATA/packages/esp32/hardware/esp32/$CORE_VER"
           mkdir -p dist
-          APP=$(find . -name 'MiniOS.ino.bin' -type f 2>/dev/null | grep -v arduino15 | head -1)
-          BOOT=$(find . -name 'MiniOS.ino.bootloader.bin' -type f 2>/dev/null | grep -v arduino15 | head -1)
-          echo "APP=$APP"
+          
+          # Копируем все .bin из build/compile в dist
+          find build/compile -type f -name '*.bin' -exec cp {} dist/ \;
+          
+          echo "=== Файлы в dist ==="
+          ls -la dist/
+          
+          # Находим bootloader и app
+          BOOT=$(find dist -name '*bootloader*.bin' | head -1)
+          APP=$(find dist -name '*.bin' ! -name '*bootloader*' ! -name 'partitions*' ! -name 'assets*' | head -1)
+          
           echo "BOOT=$BOOT"
+          echo "APP=$APP"
+          
           if [ -z "$APP" ] || [ -z "$BOOT" ]; then
-            echo "ОШИБКА: файлы прошивки не найдены. Пришли список из шага 'Сборка'."
+            echo "ОШИБКА: не найдены файлы прошивки"
             exit 1
           fi
-          cp "$APP" dist/firmware-ota.bin
-          cp "$BOOT" dist/bootloader.bin
+          
+          # Переименовываем
+          mv "$BOOT" dist/bootloader.bin
+          mv "$APP" dist/firmware-ota.bin
           cp build/partitions.bin dist/partitions.bin
           cp "$P/tools/partitions/boot_app0.bin" dist/boot_app0.bin
           cp build/assets-pak.bin dist/assets-pak.bin
+          
           python -m esptool --chip esp32s3 merge_bin -o dist/firmware-full.bin \
             0x0      dist/bootloader.bin \
             0x8000   dist/partitions.bin \
