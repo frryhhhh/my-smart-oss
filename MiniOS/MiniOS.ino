@@ -14,13 +14,9 @@
 uint8_t current_theme = 0;
 ThemeColors current_colors;
 
-void theme_apply() {
-    current_colors = themes[current_theme];
-    lv_obj_set_style_bg_color(lv_scr_act(), current_colors.bg, 0);
-}
-
 void setup() {
     Serial.begin(115200);
+    delay(1000); // Ждём стабилизации USB
     hardware_init();
     fs_init();
     camera_init();
@@ -28,11 +24,8 @@ void setup() {
     wifi_init();
     web_init();
     
-    // Сначала заставка (тёмный фон)
+    // Рисуем заставку первой
     lockscreen_init();
-    
-    // Потом тема (не трогаем заставку)
-    // theme_apply() вызовем только при переходе на рабочий стол
 }
 
 void loop() {
@@ -44,7 +37,6 @@ void loop() {
     
     String cmd = get_last_cmd();
     if (cmd.length() > 0) {
-        Serial.printf("Web cmd: %s\n", cmd.c_str());
         if (cmd == "up") buttons[0].state = true;
         else if (cmd == "down") buttons[1].state = true;
         else if (cmd == "left") buttons[2].state = true;
@@ -55,18 +47,18 @@ void loop() {
     
     if (lockscreen_is_locked()) {
         lockscreen_update();
-        if (button_pressed(4)) {
+        if (button_pressed(4)) { // ОК
             lockscreen_unlock();
-            theme_apply();  // Тема только для рабочего стола
+            current_colors = themes[current_theme];
+            lv_obj_set_style_bg_color(lv_scr_act(), current_colors.bg, 0);
             home_init();
         }
     } else {
         home_update();
-        if (button_pressed(5)) {
+        if (button_pressed(5)) { // НАЗАД
             lv_obj_clean(lv_scr_act());
-            lockscreen_init();  // Возврат к заставке
+            lockscreen_init();
         }
     }
-    
     delay(5);
 }
