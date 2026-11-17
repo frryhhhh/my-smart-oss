@@ -15,6 +15,7 @@ void theme_apply() {
 }
 
 static lv_obj_t *status_label = nullptr;
+static lv_obj_t *btn_label = nullptr;
 
 void update_status() {
     String txt = "MiniOS " + String(FW_VERSION) + "\n";
@@ -38,7 +39,12 @@ void setup() {
 
     status_label = lv_label_create(lv_scr_act());
     lv_obj_set_style_text_color(status_label, current_colors.text, 0);
-    lv_obj_align(status_label, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_align(status_label, LV_ALIGN_CENTER, 0, -20);
+
+    btn_label = lv_label_create(lv_scr_act());
+    lv_label_set_text(btn_label, "Нажми любую кнопку");
+    lv_obj_set_style_text_color(btn_label, current_colors.text, 0);
+    lv_obj_align(btn_label, LV_ALIGN_BOTTOM_MID, 0, -20);
 
     wifi_init();
     web_init();
@@ -51,6 +57,15 @@ void loop() {
     buttons_update();
     wifi_loop();
     web_loop();
-    if (button_pressed(0)) update_status();
+
+    // Тест всех кнопок
+    const char *names[] = {"ВВЕРХ", "ВНИЗ", "ВЛЕВО", "ВПРАВО", "ОК", "НАЗАД"};
+    for (int i = 0; i < 6; i++) {
+        if (button_pressed(i)) {
+            lv_label_set_text(btn_label, names[i]);
+            Serial.printf("Кнопка: %s\n", names[i]);
+        }
+    }
+
     delay(5);
 }
