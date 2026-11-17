@@ -54,7 +54,6 @@ LGFX::LGFX(void) {
 
 bool LGFX::init(void) {
     lgfx::LGFX_Device::init();
-    setRotation(1);  // горизонтально по умолчанию
     setBrightness(DEFAULT_BRIGHTNESS);
     return true;
 }
@@ -129,9 +128,7 @@ Orientation current_orientation = ORIENT_LANDSCAPE;
 
 void orientation_set(Orientation o) {
     current_orientation = o;
-    // rotation: 0=верт, 1=гориз, 2=верт_180, 3=гориз_180
-    int rot = (int)o;
-    tft.setRotation(rot);
+    tft.setRotation((int)o);  // теперь значения enum = rotation
     
     if (lv_disp) {
         if (o == ORIENT_LANDSCAPE || o == ORIENT_LANDSCAPE_180) {
@@ -172,11 +169,10 @@ void hardware_init() {
     buttons_init();
 
     lv_init();
-    // По умолчанию горизонтальная ориентация: 320×240
-    lv_disp = lv_display_create(DISP_H, DISP_W);
+    lv_disp = lv_display_create(DISP_H, DISP_W);  // 320×240 по умолчанию
     lv_display_set_flush_cb(lv_disp, flush_cb);
     lv_display_set_buffers(lv_disp, dma_buf[0], dma_buf[1], DMA_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
 
-    orientation_set(ORIENT_LANDSCAPE);
+    orientation_set(ORIENT_LANDSCAPE);  // setRotation(1)
     Serial.println("Железо инициализировано");
 }
