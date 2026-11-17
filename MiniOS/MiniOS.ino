@@ -38,15 +38,27 @@ void loop() {
     wifi_loop();
     web_loop();
     
+    // Обработка команд от веб-интерфейса
+    String cmd = get_last_cmd();
+    if (cmd.length() > 0) {
+        Serial.printf("Web cmd: %s\n", cmd.c_str());
+        if (cmd == "up") buttons[0].state = true;
+        else if (cmd == "down") buttons[1].state = true;
+        else if (cmd == "left") buttons[2].state = true;
+        else if (cmd == "right") buttons[3].state = true;
+        else if (cmd == "ok") buttons[4].state = true;
+        else if (cmd == "home") buttons[5].state = true;
+    }
+    
     if (lockscreen_is_locked()) {
         lockscreen_update();
-        if (button_pressed(4)) {
+        if (button_pressed(4)) {  // ОК
             lockscreen_unlock();
             home_init();
         }
     } else {
         home_update();
-        if (button_pressed(5)) {
+        if (button_pressed(5)) {  // НАЗАД
             lv_obj_clean(lv_scr_act());
             theme_apply();
             lockscreen_init();
