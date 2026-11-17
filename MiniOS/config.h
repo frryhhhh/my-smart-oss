@@ -17,7 +17,10 @@
 #define BTN_LEFT  41
 #define BTN_RIGHT 46
 #define BTN_OK    44
-#define BTN_HOME  43   // TX0, не BOOT!
+#define BTN_HOME  43   // TX0
+
+// Виртуальный GND
+#define VIRTUAL_GND 3
 
 // Wi-Fi
 #define AP_SSID "MiniOS-Setup"
