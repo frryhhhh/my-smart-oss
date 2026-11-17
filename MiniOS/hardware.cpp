@@ -70,13 +70,13 @@ uint8_t active_buf = 0;
 static uint8_t current_brightness = DEFAULT_BRIGHTNESS;
 
 void backlight_init() {
-    pinMode(DISP_BL, OUTPUT);
-    backlight_set(current_brightness);
+    current_brightness = DEFAULT_BRIGHTNESS;
+    tft.setBrightness(current_brightness);
 }
 
 void backlight_set(uint8_t brightness) {
     current_brightness = brightness;
-    ledcWrite(7, brightness);
+    tft.setBrightness(brightness);
 }
 
 uint8_t backlight_get() {
