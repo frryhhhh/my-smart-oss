@@ -83,28 +83,17 @@ jobs:
 
       - name: Сборка
         run: |
-          mkdir -p build/out
-          arduino-cli compile --fqbn "$FQBN" --build-path "$PWD/build/compile" --output-dir "$PWD/build/out" "$SKETCH" 2>&1 | tee build/build.log
-          echo "=== Файлы в build/out ==="
-          ls -la build/out/ || echo "build/out пуст"
-          echo "=== Файлы в build/compile ==="
-          find build/compile -name '*.bin' -type f 2>/dev/null || echo "Нет .bin в build/compile"
+          arduino-cli compile --fqbn "$FQBN" --export-binaries "$SKETCH" 2>&1 | tee build/build.log
+          echo "=== Файлы в $SKETCH/build ==="
+          find "$SKETCH/build" -name '*.bin' -type f 2>/dev/null || echo "Нет .bin"
 
       - name: Упаковка образов
         run: |
           P="$ARDUINO_DIRECTORIES_DATA/packages/esp32/hardware/esp32/$CORE_VER"
           mkdir -p dist
           
-          # Ищем файлы в build/out, если нет - в build/compile
-          APP=$(find build/out -name '*.ino.bin' -type f 2>/dev/null | head -1)
-          if [ -z "$APP" ]; then
-            APP=$(find build/compile -name '*.ino.bin' -type f 2>/dev/null | head -1)
-          fi
-          
-          BOOT=$(find build/out -name '*bootloader*.bin' -type f 2>/dev/null | head -1)
-          if [ -z "$BOOT" ]; then
-            BOOT=$(find build/compile -maxdepth 2 -name '*bootloader*.bin' -type f 2>/dev/null | head -1)
-          fi
+          APP=$(find "$SKETCH/build" -name '*.ino.bin' -type f 2>/dev/null | head -1)
+          BOOT=$(find "$SKETCH/build" -name '*bootloader*.bin' -type f 2>/dev/null | head -1)
           
           echo "APP=$APP"
           echo "BOOT=$BOOT"
