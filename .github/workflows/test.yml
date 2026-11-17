@@ -108,7 +108,7 @@ jobs:
             0x10000  dist/firmware-ota.bin \
             0x810000 dist/assets-pak.bin
           cd dist && for f in *.bin; do sha256sum "$f" > "$f.sha256"; done
-          ls -l dist/
+          ls -l
 
       - name: Размеры Flash/RAM
         run: |
