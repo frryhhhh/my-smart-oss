@@ -1,0 +1,176 @@
+name: build
+
+on:
+  push:
+    branches: [ main, master ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  FPS: "15"
+  JPEG_Q: "8"
+  CROP_H: "crop=320:240:0:ih*0.38"
+  CROP_V: "crop=240:320:0:ih-320"
+  BLUR_SIGMA: "14"
+  CORE_VER: "3.3.0"
+  LVGL_TAG: "v9.2.2"
+  LGFX_TAG: "1.2.0"
+  CLI_VER: "1.1.1"
+  ESPTOOL_VER: "4.8.1"
+  SKETCH: "MiniOS"
+  ARDUINO_DIRECTORIES_DATA: ${{ github.workspace }}/.arduino15
+  ARDUINO_DIRECTORIES_USER: ${{ github.workspace }}/Arduino
+  FQBN: "esp32:esp32:esp32s3:FlashMode=qio,FlashFrequency=80,FlashSize=16MB,PSRAM=opi,PartitionScheme=default,USBMode=hwcdc,CDCOnBoot=cdc,CPUFreq=240m,DebugLevel=none"
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Системные пакеты
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg unzip
+
+      - name: Кэш ядра и библиотек
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.ARDUINO_DIRECTORIES_DATA }}
+            ${{ env.ARDUINO_DIRECTORIES_USER }}/libraries
+          key: ard-${{ env.CORE_VER }}-${{ env.LVGL_TAG }}-${{ env.LGFX_TAG }}-${{ hashFiles('ci/lv_conf.h') }}
+
+      - name: Установка arduino-cli
+        run: |
+          mkdir -p "$HOME/bin"
+          curl -fsSL "https://github.com/arduino/arduino-cli/releases/download/v${CLI_VER}/arduino-cli_${CLI_VER}_Linux_64bit.tar.gz" \
+            | tar xz -C "$HOME/bin" arduino-cli
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+
+      - name: Ядро esp32
+        run: |
+          arduino-cli config init --overwrite
+          arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core update-index
+          if [ ! -d "$ARDUINO_DIRECTORIES_DATA/packages/esp32/hardware/esp32/$CORE_VER" ]; then
+            arduino-cli core install "esp32:esp32@$CORE_VER"
+          fi
+
+      - name: Библиотеки (LVGL, LovyanGFX)
+        run: |
+          mkdir -p "$ARDUINO_DIRECTORIES_USER/libraries"
+          L="$ARDUINO_DIRECTORIES_USER/libraries"
+          [ -d "$L/lvgl" ]      || git clone --depth 1 --branch "$LVGL_TAG" https://github.com/lvgl/lvgl.git "$L/lvgl"
+          [ -d "$L/LovyanGFX" ] || git clone --depth 1 --branch "$LGFX_TAG" https://github.com/lovyan03/LovyanGFX.git "$L/LovyanGFX"
+          cp ci/lv_conf.h "$L/lv_conf.h"
+
+      - name: Схема разделов
+        run: |
+          P="$ARDUINO_DIRECTORIES_DATA/packages/esp32/hardware/esp32/$CORE_VER"
+          mkdir -p build
+          python3 "$P/tools/gen_esp32part.py" --verify "$SKETCH/partitions.csv" build/partitions.bin
+          cp "$SKETCH/partitions.csv" "$P/tools/partitions/default.csv"
+          cat "$P/tools/partitions/default.csv"
+
+      - name: Шрифты (кириллица)
+        run: bash ci/make_fonts.sh "$SKETCH"
+
+      - name: Версия прошивки
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then V="${GITHUB_REF#refs/tags/}"; else V="0.1.0-b$GITHUB_RUN_NUMBER"; fi
+          printf '#pragma once\n#define FW_VERSION "%s"\n' "$V" > "$SKETCH/version.h"
+          echo "FW_VER=$V" >> "$GITHUB_ENV"
+          cat "$SKETCH/version.h"
+
+      - name: Ассеты (видео, обои, пак)
+        run: |
+          bash ci/prepare_assets.sh
+          python3 ci/make_pak.py build/assets build/assets-pak.bin
+
+      - name: Сборка
+        run: |
+          mkdir -p build
+          arduino-cli compile \
+            --fqbn "$FQBN" \
+            --build-path "$PWD/build/compile" \
+            --output-dir "$PWD/build/out" \
+            --warnings default \
+            "$SKETCH" 2>&1 | tee build/build.log
+          echo "=== ПРОВЕРКА РЕЗУЛЬТАТОВ СБОРКИ ==="
+          ls -la build/out/ || echo "ПАПКА build/out НЕ СОЗДАНА — сборка упала"
+          ls -la build/compile/ || echo "ПАПКА build/compile НЕ СОЗДАНА"
+          grep -E "Sketch uses|Global variables|Maximum is" build/build.log || true
+
+      - name: Упаковка образов
+        run: |
+          pip install "esptool==$ESPTOOL_VER"
+          P="$ARDUINO_DIRECTORIES_DATA/packages/esp32/hardware/esp32/$CORE_VER"
+          mkdir -p dist
+          APP=$(find build/out -name '*.ino.bin' 2>/dev/null | head -1)
+          BOOT=$(find build/compile -maxdepth 1 -name '*bootloader*.bin' 2>/dev/null | head -1)
+          echo "APP=$APP"
+          echo "BOOT=$BOOT"
+          if [ -z "$APP" ] || [ -z "$BOOT" ]; then
+            echo "ОШИБКА: файлы прошивки не найдены. Смотри лог шага 'Сборка' выше."
+            exit 1
+          fi
+          cp "$APP" dist/firmware-ota.bin
+          cp "$BOOT" dist/bootloader.bin
+          cp build/partitions.bin dist/partitions.bin
+          cp "$P/tools/partitions/boot_app0.bin" dist/boot_app0.bin
+          cp build/assets-pak.bin dist/assets-pak.bin
+          python -m esptool --chip esp32s3 merge_bin -o dist/firmware-full.bin \
+            0x0      dist/bootloader.bin \
+            0x8000   dist/partitions.bin \
+            0xe000   dist/boot_app0.bin \
+            0x10000  dist/firmware-ota.bin \
+            0x810000 dist/assets-pak.bin
+          cd dist && for f in *.bin; do sha256sum "$f" > "$f.sha256"; done
+          ls -l
+
+      - name: Размеры Flash/RAM
+        run: |
+          grep -E "Sketch uses|Global variables|Maximum is" build/build.log || true
+          SZ=$(find "$ARDUINO_DIRECTORIES_DATA/packages/esp32/tools" -name 'xtensa-esp32s3-elf-size' 2>/dev/null | head -1)
+          ELF=$(find build/out -name '*.elf' 2>/dev/null | head -1)
+          if [ -n "$SZ" ] && [ -n "$ELF" ]; then "$SZ" "$ELF"; fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: minios-${{ env.FW_VER }}
+          path: dist/*
+
+      - name: GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES="Версия $FW_VER. firmware-full.bin — один раз по USB (адрес 0x0). firmware-ota.bin — обновления по Wi-Fi."
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            gh release create "$FW_VER" dist/* --title "MiniOS $FW_VER" --notes "$NOTES" \
+              || gh release upload "$FW_VER" dist/* --clobber
+          else
+            gh release delete latest -y --cleanup-tag || true
+            gh release create latest dist/* --title "Сборка $FW_VER" --notes "$NOTES"
+          fi
+
+      - name: ТОЛЬКО ОШИБКИ
+        if: failure()
+        run: |
+          if [ -f build/build.log ]; then
+            echo "=== ПОСЛЕДНИЕ 50 СТРОК ЛОГА СБОРКИ ==="
+            tail -n 50 build/build.log
+          else
+            echo "Лога сборки нет."
+          fi
