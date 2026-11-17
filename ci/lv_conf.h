@@ -1,4 +1,3 @@
-/* Мини-ОС: конфиг LVGL 9.2 (неуказанное = по умолчанию) */
 #ifndef LV_CONF_H
 #define LV_CONF_H
 
@@ -13,9 +12,9 @@
 #define LV_DRAW_BUF_STRIDE_ALIGN 4
 #define LV_DRAW_BUF_ALIGN 4
 
-/* Шрифты: 14 базовый, 24 для заголовков */
 #define LV_FONT_MONTSERRAT_14 1
 #define LV_FONT_MONTSERRAT_24 1
+#define LV_FONT_MONTSERRAT_48 1
 #define LV_FONT_DEFAULT &lv_font_montserrat_14
 #define LV_FONT_FMT_TXT_LARGE 0
 #define LV_USE_FONT_COMPRESSED 0
