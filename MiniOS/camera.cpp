@@ -2,6 +2,8 @@
 #include "config.h"
 #include <esp_camera.h>
 
+static bool cam_ready = false;
+
 void camera_init() {
     camera_config_t config;
     config.ledc_channel = LEDC_CHANNEL_0;
@@ -32,12 +34,17 @@ void camera_init() {
     esp_err_t err = esp_camera_init(&config);
     if (err != ESP_OK) {
         Serial.printf("Camera init failed: 0x%x\n", err);
+        cam_ready = false;
         return;
     }
-    Serial.println("Camera initialized");
+    cam_ready = true;
+    Serial.println("Camera ready");
 }
 
+bool camera_is_ready() { return cam_ready; }
+
 bool camera_capture(uint8_t *buf, size_t len) {
+    if (!cam_ready) return false;
     camera_fb_t *fb = esp_camera_fb_get();
     if (!fb) return false;
     if (fb->len > len) {
@@ -45,8 +52,9 @@ bool camera_capture(uint8_t *buf, size_t len) {
         return false;
     }
     memcpy(buf, fb->buf, fb->len);
+    size_t out = fb->len;
     esp_camera_fb_return(fb);
-    return true;
+    return out > 0;
 }
 
 size_t camera_frame_size() {
