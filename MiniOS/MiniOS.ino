@@ -1,104 +1,56 @@
 #include <Arduino.h>
-#include <LovyanGFX.hpp>
+#include <lvgl.h>
 #include "config.h"
+#include "theme.h"
+#include "hardware.h"
+#include "wifi_mgr.h"
+#include "web_server.h"
 
-class LGFX : public lgfx::LGFX_Device {
-    lgfx::Panel_ST7789 _panel;
-    lgfx::Bus_SPI _bus;
-    lgfx::Light_PWM _light;
-public:
-    LGFX(void) {
-        {
-            auto cfg = _bus.config();
-            cfg.spi_host = SPI2_HOST;
-            cfg.spi_mode = 0;
-            cfg.freq_write = 80000000;
-            cfg.freq_read = 16000000;
-            cfg.spi_3wire = false;
-            cfg.use_lock = true;
-            cfg.dma_channel = SPI_DMA_CH_AUTO;
-            cfg.pin_sclk = DISP_SCLK;
-            cfg.pin_mosi = DISP_MOSI;
-            cfg.pin_miso = -1;
-            cfg.pin_dc = DISP_DC;
-            _bus.config(cfg);
-            _panel.setBus(&_bus);
-        }
-        {
-            auto cfg = _panel.config();
-            cfg.pin_cs = DISP_CS;
-            cfg.pin_rst = DISP_RST;
-            cfg.pin_busy = -1;
-            cfg.memory_width = 240;
-            cfg.memory_height = 320;
-            cfg.panel_width = 240;
-            cfg.panel_height = 320;
-            cfg.offset_x = 0;
-            cfg.offset_y = 0;
-            cfg.offset_rotation = 0;
-            cfg.dummy_read_pixel = 8;
-            cfg.dummy_read_bits = 1;
-            cfg.readable = false;
-            cfg.invert = true;
-            cfg.rgb_order = false;
-            cfg.dlen_16bit = false;
-            cfg.bus_shared = true;
-            _panel.config(cfg);
-        }
-        {
-            auto cfg = _light.config();
-            cfg.pin_bl = DISP_BL;
-            cfg.invert = false;
-            cfg.freq = 44100;
-            cfg.pwm_channel = 7;
-            _light.config(cfg);
-            _panel.setLight(&_light);
-        }
-        setPanel(&_panel);
-    }
-    bool init(void) {
-        lgfx::LGFX_Device::init();
-        setRotation(1);
-        setBrightness(180);
-        return true;
-    }
-};
+uint8_t current_theme = 0;
+ThemeColors current_colors;
 
-LGFX tft;
+void theme_apply() {
+    current_colors = themes[current_theme];
+    lv_obj_set_style_bg_color(lv_scr_act(), current_colors.bg, 0);
+}
+
+static lv_obj_t *status_label = nullptr;
+
+void update_status() {
+    String txt = "MiniOS " + String(FW_VERSION) + "\n";
+    NetState s = wifi_state();
+    if (s == NET_CLIENT) txt += "Wi-Fi: " + wifi_ip();
+    else if (s == NET_AP) txt += "AP: " + String(AP_SSID) + "\nПароль: " + wifi_ap_pass();
+    else txt += "Wi-Fi: подключение...";
+    lv_label_set_text(status_label, txt.c_str());
+}
 
 void setup() {
     Serial.begin(115200);
-    Serial.println("Тест дисплея");
-    tft.init();
-    
-    // Тест 1: красный экран
-    Serial.println("Красный...");
-    tft.fillScreen(TFT_RED);
-    delay(2000);
-    
-    // Тест 2: зелёный экран
-    Serial.println("Зелёный...");
-    tft.fillScreen(TFT_GREEN);
-    delay(2000);
-    
-    // Тест 3: синий экран
-    Serial.println("Синий...");
-    tft.fillScreen(TFT_BLUE);
-    delay(2000);
-    
-    // Тест 4: белый с текстом
-    Serial.println("Белый с текстом...");
-    tft.fillScreen(TFT_WHITE);
-    tft.setTextColor(TFT_BLACK);
-    tft.setTextSize(2);
-    tft.setCursor(10, 10);
-    tft.println("TEST OK");
-    tft.setCursor(10, 40);
-    tft.println("240x320");
-    
-    Serial.println("Готово");
+    hardware_init();
+    theme_apply();
+
+    lv_obj_t *title = lv_label_create(lv_scr_act());
+    lv_label_set_text(title, "MiniOS");
+    lv_obj_set_style_text_font(title, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_color(title, current_colors.text, 0);
+    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 20);
+
+    status_label = lv_label_create(lv_scr_act());
+    lv_obj_set_style_text_color(status_label, current_colors.text, 0);
+    lv_obj_align(status_label, LV_ALIGN_CENTER, 0, 0);
+
+    wifi_init();
+    web_init();
+    update_status();
 }
 
 void loop() {
-    delay(1000);
+    lv_tick_inc(5);
+    lv_timer_handler();
+    buttons_update();
+    wifi_loop();
+    web_loop();
+    if (button_pressed(0)) update_status();
+    delay(5);
 }
