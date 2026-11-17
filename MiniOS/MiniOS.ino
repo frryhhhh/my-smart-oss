@@ -27,8 +27,12 @@ void setup() {
     mic_init();
     wifi_init();
     web_init();
-    theme_apply();
+    
+    // Сначала заставка (тёмный фон)
     lockscreen_init();
+    
+    // Потом тема (не трогаем заставку)
+    // theme_apply() вызовем только при переходе на рабочий стол
 }
 
 void loop() {
@@ -38,7 +42,6 @@ void loop() {
     wifi_loop();
     web_loop();
     
-    // Обработка команд от веб-интерфейса
     String cmd = get_last_cmd();
     if (cmd.length() > 0) {
         Serial.printf("Web cmd: %s\n", cmd.c_str());
@@ -52,16 +55,16 @@ void loop() {
     
     if (lockscreen_is_locked()) {
         lockscreen_update();
-        if (button_pressed(4)) {  // ОК
+        if (button_pressed(4)) {
             lockscreen_unlock();
+            theme_apply();  // Тема только для рабочего стола
             home_init();
         }
     } else {
         home_update();
-        if (button_pressed(5)) {  // НАЗАД
+        if (button_pressed(5)) {
             lv_obj_clean(lv_scr_act());
-            theme_apply();
-            lockscreen_init();
+            lockscreen_init();  // Возврат к заставке
         }
     }
     
