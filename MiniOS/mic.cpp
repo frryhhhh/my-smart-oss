@@ -6,6 +6,8 @@
 #define I2S_MIC_WS 4
 #define I2S_MIC_DIN 6
 
+static bool mic_ready = false;
+
 void mic_init() {
     i2s_config_t i2s_config = {
         .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX),
@@ -31,13 +33,18 @@ void mic_init() {
     esp_err_t err = i2s_driver_install(I2S_MIC_PORT, &i2s_config, 0, NULL);
     if (err != ESP_OK) {
         Serial.printf("I2S install failed: %d\n", err);
+        mic_ready = false;
         return;
     }
     i2s_set_pin(I2S_MIC_PORT, &pin_config);
-    Serial.println("Microphone initialized");
+    mic_ready = true;
+    Serial.println("Microphone ready");
 }
 
+bool mic_is_ready() { return mic_ready; }
+
 bool mic_record(uint8_t *buf, size_t len) {
+    if (!mic_ready) return false;
     size_t bytes_read;
     esp_err_t err = i2s_read(I2S_MIC_PORT, buf, len, &bytes_read, 1000);
     return (err == ESP_OK && bytes_read > 0);
