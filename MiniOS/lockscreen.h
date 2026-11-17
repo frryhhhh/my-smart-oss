@@ -1,5 +1,5 @@
 #pragma once
-#include <Arduino.h>
+#include <lvgl.h>
 
 void lockscreen_init();
 void lockscreen_update();
