@@ -1,7 +1,7 @@
 #include "hardware.h"
 #include "config.h"
 
-// ==== Дисплей ====
+// ==== Дисплей ST7789 ====
 LGFX::LGFX(void) {
     {
         auto cfg = _bus.config();
@@ -62,11 +62,11 @@ bool LGFX::init(void) {
 LGFX tft;
 lv_display_t *lv_disp = nullptr;
 
-// ==== DMA-буферы ====
+// ==== DMA-буферы во внутренней RAM ====
 uint16_t *dma_buf[2] = {nullptr, nullptr};
 uint8_t active_buf = 0;
 
-// ==== Подсветка ====
+// ==== Подсветка (через дисплей, не трогаем ШИМ напрямую) ====
 static uint8_t current_brightness = DEFAULT_BRIGHTNESS;
 
 void backlight_init() {
@@ -104,12 +104,10 @@ void buttons_update() {
     for (int i = 0; i < 6; i++) {
         buttons[i].prev_state = buttons[i].state;
         buttons[i].state = (digitalRead(buttons[i].pin) == LOW);
-        
         if (buttons[i].state && !buttons[i].prev_state) {
             buttons[i].press_time = now;
             buttons[i].long_pressed = false;
         }
-        
         if (buttons[i].state && (now - buttons[i].press_time > 1000)) {
             buttons[i].long_pressed = true;
         }
@@ -132,7 +130,6 @@ Orientation current_orientation = ORIENT_LANDSCAPE;
 void orientation_set(Orientation o) {
     current_orientation = o;
     tft.setRotation((int)o);
-    
     if (lv_disp) {
         if (o == ORIENT_LANDSCAPE || o == ORIENT_LANDSCAPE_180) {
             lv_display_set_resolution(lv_disp, DISP_W, DISP_H);
@@ -146,39 +143,36 @@ Orientation orientation_get() {
     return current_orientation;
 }
 
-// ==== Инициализация железа ====
+// ==== Отрисовка буфера LVGL на дисплей ====
+static void flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
+    uint16_t *buf = (uint16_t *)px_map;
+    int32_t w = lv_area_get_width(area);
+    int32_t h = lv_area_get_height(area);
+    tft.startWrite();
+    tft.setAddrWindow(area->x1, area->y1, w, h);
+    tft.pushPixels(buf, w * h, true);
+    tft.endWrite();
+    lv_display_flush_ready(disp);
+}
+
+// ==== Инициализация всего железа ====
 void hardware_init() {
-    // DMA-буферы во внутренней RAM (быстрее для DMA)
     dma_buf[0] = (uint16_t *)heap_caps_malloc(DMA_BUF_SIZE, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
     dma_buf[1] = (uint16_t *)heap_caps_malloc(DMA_BUF_SIZE, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
-    
     if (!dma_buf[0] || !dma_buf[1]) {
         Serial.println("Ошибка: не хватает RAM для DMA-буферов");
         while (true) delay(1000);
     }
-    
+
     tft.init();
     backlight_init();
     buttons_init();
-    orientation_set(ORIENT_LANDSCAPE);
-    
-    // Инициализация LVGL
+
     lv_init();
     lv_disp = lv_display_create(DISP_W, DISP_H);
-    lv_display_set_flush_cb(lv_disp, [](lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
-        uint16_t *buf = (uint16_t *)px_map;
-        int32_t w = lv_area_get_width(area);
-        int32_t h = lv_area_get_height(area);
-        
-        tft.startWrite();
-        tft.setAddrWindow(area->x1, area->y1, w, h);
-        tft.pushPixels(buf, w * h, true);
-        tft.endWrite();
-        
-        lv_display_flush_ready(disp);
-    });
-    
+    lv_display_set_flush_cb(lv_disp, flush_cb);
     lv_display_set_buffers(lv_disp, dma_buf[0], dma_buf[1], DMA_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
-    
+
+    orientation_set(ORIENT_LANDSCAPE);
     Serial.println("Железо инициализировано");
 }
