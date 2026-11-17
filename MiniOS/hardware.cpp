@@ -1,7 +1,6 @@
 #include "hardware.h"
 #include "config.h"
 
-// ==== Дисплей ST7789 ====
 LGFX::LGFX(void) {
     {
         auto cfg = _bus.config();
@@ -24,10 +23,10 @@ LGFX::LGFX(void) {
         cfg.pin_cs = DISP_CS;
         cfg.pin_rst = DISP_RST;
         cfg.pin_busy = -1;
-        cfg.memory_width = DISP_W;
-        cfg.memory_height = DISP_H;
-        cfg.panel_width = DISP_W;
-        cfg.panel_height = DISP_H;
+        cfg.memory_width = 240;
+        cfg.memory_height = 320;
+        cfg.panel_width = 240;
+        cfg.panel_height = 320;
         cfg.offset_x = 0;
         cfg.offset_y = 0;
         cfg.offset_rotation = 0;
@@ -54,35 +53,21 @@ LGFX::LGFX(void) {
 
 bool LGFX::init(void) {
     lgfx::LGFX_Device::init();
+    setRotation(1);
     setBrightness(DEFAULT_BRIGHTNESS);
     return true;
 }
 
 LGFX tft;
 lv_display_t *lv_disp = nullptr;
-
-// ==== DMA-буферы ====
 uint16_t *dma_buf[2] = {nullptr, nullptr};
 uint8_t active_buf = 0;
-
-// ==== Подсветка ====
 static uint8_t current_brightness = DEFAULT_BRIGHTNESS;
 
-void backlight_init() {
-    current_brightness = DEFAULT_BRIGHTNESS;
-    tft.setBrightness(current_brightness);
-}
+void backlight_init() { tft.setBrightness(current_brightness); }
+void backlight_set(uint8_t b) { current_brightness = b; tft.setBrightness(b); }
+uint8_t backlight_get() { return current_brightness; }
 
-void backlight_set(uint8_t brightness) {
-    current_brightness = brightness;
-    tft.setBrightness(brightness);
-}
-
-uint8_t backlight_get() {
-    return current_brightness;
-}
-
-// ==== Кнопки ====
 Button buttons[6] = {
     {BTN_UP, false, false, 0, 0, false},
     {BTN_DOWN, false, false, 0, 0, false},
@@ -93,9 +78,7 @@ Button buttons[6] = {
 };
 
 void buttons_init() {
-    for (int i = 0; i < 6; i++) {
-        pinMode(buttons[i].pin, INPUT_PULLUP);
-    }
+    for (int i = 0; i < 6; i++) pinMode(buttons[i].pin, INPUT_PULLUP);
 }
 
 void buttons_update() {
@@ -113,37 +96,9 @@ void buttons_update() {
     }
 }
 
-bool button_pressed(uint8_t idx) {
-    if (idx >= 6) return false;
-    return buttons[idx].state && !buttons[idx].prev_state;
-}
+bool button_pressed(uint8_t idx) { return idx < 6 && buttons[idx].state && !buttons[idx].prev_state; }
+bool button_long_press(uint8_t idx) { return idx < 6 && buttons[idx].long_pressed; }
 
-bool button_long_press(uint8_t idx) {
-    if (idx >= 6) return false;
-    return buttons[idx].long_pressed;
-}
-
-// ==== Ориентация ====
-Orientation current_orientation = ORIENT_LANDSCAPE;
-
-void orientation_set(Orientation o) {
-    current_orientation = o;
-    tft.setRotation((int)o);  // теперь значения enum = rotation
-    
-    if (lv_disp) {
-        if (o == ORIENT_LANDSCAPE || o == ORIENT_LANDSCAPE_180) {
-            lv_display_set_resolution(lv_disp, DISP_H, DISP_W);  // 320×240
-        } else {
-            lv_display_set_resolution(lv_disp, DISP_W, DISP_H);  // 240×320
-        }
-    }
-}
-
-Orientation orientation_get() {
-    return current_orientation;
-}
-
-// ==== Отрисовка ====
 static void flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
     uint16_t *buf = (uint16_t *)px_map;
     int32_t w = lv_area_get_width(area);
@@ -155,24 +110,15 @@ static void flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
     lv_display_flush_ready(disp);
 }
 
-// ==== Инициализация ====
 void hardware_init() {
-    dma_buf[0] = (uint16_t *)heap_caps_malloc(DMA_BUF_SIZE, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
-    dma_buf[1] = (uint16_t *)heap_caps_malloc(DMA_BUF_SIZE, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
-    if (!dma_buf[0] || !dma_buf[1]) {
-        Serial.println("Ошибка: не хватает RAM для DMA-буферов");
-        while (true) delay(1000);
-    }
-
+    dma_buf[0] = (uint16_t *)heap_caps_malloc(320 * 40 * 2, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
+    dma_buf[1] = (uint16_t *)heap_caps_malloc(320 * 40 * 2, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
     tft.init();
     backlight_init();
     buttons_init();
-
     lv_init();
-    lv_disp = lv_display_create(DISP_H, DISP_W);  // 320×240 по умолчанию
+    lv_disp = lv_display_create(320, 240);
     lv_display_set_flush_cb(lv_disp, flush_cb);
-    lv_display_set_buffers(lv_disp, dma_buf[0], dma_buf[1], DMA_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
-
-    orientation_set(ORIENT_LANDSCAPE);  // setRotation(1)
-    Serial.println("Железо инициализировано");
+    lv_display_set_buffers(lv_disp, dma_buf[0], dma_buf[1], 320 * 40 * 2, LV_DISPLAY_RENDER_MODE_PARTIAL);
+    Serial.println("HW OK");
 }
