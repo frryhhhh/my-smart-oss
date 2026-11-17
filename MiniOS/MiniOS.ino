@@ -16,15 +16,13 @@ ThemeColors current_colors;
 
 void setup() {
     Serial.begin(115200);
-    delay(1000); // Ждём стабилизации USB
+    delay(1000);
     hardware_init();
     fs_init();
     camera_init();
     mic_init();
     wifi_init();
     web_init();
-    
-    // Рисуем заставку первой
     lockscreen_init();
 }
 
@@ -35,19 +33,9 @@ void loop() {
     wifi_loop();
     web_loop();
     
-    String cmd = get_last_cmd();
-    if (cmd.length() > 0) {
-        if (cmd == "up") buttons[0].state = true;
-        else if (cmd == "down") buttons[1].state = true;
-        else if (cmd == "left") buttons[2].state = true;
-        else if (cmd == "right") buttons[3].state = true;
-        else if (cmd == "ok") buttons[4].state = true;
-        else if (cmd == "home") buttons[5].state = true;
-    }
-    
     if (lockscreen_is_locked()) {
         lockscreen_update();
-        if (button_pressed(4)) { // ОК
+        if (button_pressed(4)) {
             lockscreen_unlock();
             current_colors = themes[current_theme];
             lv_obj_set_style_bg_color(lv_scr_act(), current_colors.bg, 0);
@@ -55,7 +43,7 @@ void loop() {
         }
     } else {
         home_update();
-        if (button_pressed(5)) { // НАЗАД
+        if (button_pressed(5)) {
             lv_obj_clean(lv_scr_act());
             lockscreen_init();
         }
