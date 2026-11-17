@@ -1,0 +1,12 @@
+name: test
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Проверка
+        run: echo "GitHub Actions работает!"
