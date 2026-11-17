@@ -1,0 +1,5 @@
+#pragma once
+#include <Arduino.h>
+
+void mic_init();
+bool mic_record(uint8_t *buf, size_t len);
