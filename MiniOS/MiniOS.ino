@@ -22,12 +22,12 @@ void theme_apply() {
 void setup() {
     Serial.begin(115200);
     hardware_init();
-    theme_apply();
     fs_init();
     camera_init();
     mic_init();
     wifi_init();
     web_init();
+    theme_apply();
     lockscreen_init();
 }
 
