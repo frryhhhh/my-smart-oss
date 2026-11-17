@@ -11,13 +11,13 @@
 #define DISP_SCLK 21
 #define DISP_BL   42
 
-// Кнопки
+// Кнопки (INPUT_PULLUP, замыкание на GND)
 #define BTN_UP    1
 #define BTN_DOWN  2
 #define BTN_LEFT  41
 #define BTN_RIGHT 46
 #define BTN_OK    44
-#define BTN_HOME  0
+#define BTN_HOME  43   // TX0, не BOOT!
 
 // Wi-Fi
 #define AP_SSID "MiniOS-Setup"
