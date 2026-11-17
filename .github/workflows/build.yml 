@@ -15,7 +15,7 @@ env:
   CROP_H: "crop=320:240:0:ih*0.38"
   CROP_V: "crop=240:320:0:ih-320"
   BLUR_SIGMA: "14"
-  CORE_VER: "3.3.0"
+  CORE_VER: "3.0.4"
   LVGL_TAG: "v9.2.2"
   LGFX_TAG: "1.2.0"
   CLI_VER: "1.1.1"
@@ -23,7 +23,7 @@ env:
   SKETCH: "MiniOS"
   ARDUINO_DIRECTORIES_DATA: ${{ github.workspace }}/.arduino15
   ARDUINO_DIRECTORIES_USER: ${{ github.workspace }}/Arduino
-  FQBN: "esp32:esp32:esp32s3:FlashMode=qio,FlashFrequency=80,FlashSize=16MB,PSRAM=opi,PartitionScheme=default,USBMode=hwcdc,CDCOnBoot=cdc,CPUFreq=240m,DebugLevel=none"
+  FQBN: "esp32:esp32:esp32s3:FlashMode=qio,FlashFreq=80,FlashSize=16M,PSRAM=enabled,PartitionScheme=default,CDCOnBoot=enabled,CPUFreq=240,DebugLevel=none"
 
 jobs:
   build:
@@ -108,24 +108,15 @@ jobs:
             --output-dir "$PWD/build/out" \
             --warnings default \
             "$SKETCH" 2>&1 | tee build/build.log
-          echo "=== ПРОВЕРКА РЕЗУЛЬТАТОВ СБОРКИ ==="
-          ls -la build/out/ || echo "ПАПКА build/out НЕ СОЗДАНА — сборка упала"
-          ls -la build/compile/ || echo "ПАПКА build/compile НЕ СОЗДАНА"
-          grep -E "Sketch uses|Global variables|Maximum is" build/build.log || true
 
       - name: Упаковка образов
         run: |
           pip install "esptool==$ESPTOOL_VER"
           P="$ARDUINO_DIRECTORIES_DATA/packages/esp32/hardware/esp32/$CORE_VER"
           mkdir -p dist
-          APP=$(find build/out -name '*.ino.bin' 2>/dev/null | head -1)
-          BOOT=$(find build/compile -maxdepth 1 -name '*bootloader*.bin' 2>/dev/null | head -1)
-          echo "APP=$APP"
-          echo "BOOT=$BOOT"
-          if [ -z "$APP" ] || [ -z "$BOOT" ]; then
-            echo "ОШИБКА: файлы прошивки не найдены. Смотри лог шага 'Сборка' выше."
-            exit 1
-          fi
+          APP=$(find build/out -name '*.ino.bin' | head -1)
+          BOOT=$(find build/compile -maxdepth 1 -name '*bootloader*.bin' | head -1)
+          echo "APP=$APP  BOOT=$BOOT"
           cp "$APP" dist/firmware-ota.bin
           cp "$BOOT" dist/bootloader.bin
           cp build/partitions.bin dist/partitions.bin
@@ -143,8 +134,8 @@ jobs:
       - name: Размеры Flash/RAM
         run: |
           grep -E "Sketch uses|Global variables|Maximum is" build/build.log || true
-          SZ=$(find "$ARDUINO_DIRECTORIES_DATA/packages/esp32/tools" -name 'xtensa-esp32s3-elf-size' 2>/dev/null | head -1)
-          ELF=$(find build/out -name '*.elf' 2>/dev/null | head -1)
+          SZ=$(find "$ARDUINO_DIRECTORIES_DATA/packages/esp32/tools" -name 'xtensa-esp32s3-elf-size' | head -1)
+          ELF=$(find build/out -name '*.elf' | head -1)
           if [ -n "$SZ" ] && [ -n "$ELF" ]; then "$SZ" "$ELF"; fi
 
       - uses: actions/upload-artifact@v4
