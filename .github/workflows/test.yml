@@ -33,6 +33,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg unzip
+          pip install "esptool==$ESPTOOL_VER"
 
       - name: Установка arduino-cli
         run: |
@@ -87,7 +88,6 @@ jobs:
 
       - name: Упаковка образов
         run: |
-          pip install "esptool==$ESPTOOL_VER"
           P="$ARDUINO_DIRECTORIES_DATA/packages/esp32/hardware/esp32/$CORE_VER"
           mkdir -p dist
           APP=$(find build/out -name '*.ino.bin' 2>/dev/null | head -1)
@@ -109,6 +109,10 @@ jobs:
             0x810000 dist/assets-pak.bin
           cd dist && for f in *.bin; do sha256sum "$f" > "$f.sha256"; done
           ls -l dist/
+
+      - name: Размеры Flash/RAM
+        run: |
+          grep -E "Sketch uses|Global variables|Maximum is" build/build.log || true
 
       - uses: actions/upload-artifact@v4
         with:
