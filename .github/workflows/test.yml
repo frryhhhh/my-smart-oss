@@ -17,7 +17,7 @@ env:
   SKETCH: "MiniOS"
   ARDUINO_DIRECTORIES_DATA: ${{ github.workspace }}/.arduino15
   ARDUINO_DIRECTORIES_USER: ${{ github.workspace }}/Arduino
-  FQBN: "esp32:esp32:esp32s3:FlashMode=qio,FlashSize=16M,PSRAM=opi,PartitionScheme=default,CDCOnBoot=cdc,CPUFreq=240,DebugLevel=none"
+  FQBN: "esp32:esp32:esp32s3:FlashMode=qio,FlashSize=16M,PSRAM=opi,PartitionScheme=default_16MB,CDCOnBoot=cdc,CPUFreq=240,DebugLevel=none"
 
 jobs:
   build:
