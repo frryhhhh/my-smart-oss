@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <lvgl.h>
+#include <Preferences.h>
 #include "config.h"
 #include "theme.h"
 #include "hardware.h"
@@ -15,15 +16,19 @@ ThemeColors current_colors;
 void setup() {
     Serial.begin(115200);
     delay(1000);
-    hardware_init();
     
-    // Чёрный фон сразу
+    // СТИРАЕМ ВСЕ СОХРАНЁННЫЕ НАСТРОЙКИ
+    Preferences p;
+    p.begin("net", false);
+    p.clear();
+    p.end();
+    Serial.println("=== NVS CLEARED ===");
+    
+    hardware_init();
     lv_obj_set_style_bg_color(lv_scr_act(), lv_color_hex(0x0a0a1a), 0);
     lv_obj_set_style_bg_opa(lv_scr_act(), 255, 0);
     
     fs_init();
-    // camera_init();  // ОТКЛЮЧЕНО — ломает систему
-    // mic_init();     // ОТКЛЮЧЕНО — может конфликтовать
     wifi_init();
     web_init();
     lockscreen_init();
