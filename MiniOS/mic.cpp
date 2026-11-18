@@ -1,10 +1,6 @@
 #include "mic.h"
+#include "config.h"
 #include <driver/i2s.h>
-
-// Пины микрофона INMP441 (I2S)
-#define MIC_WS  4   // Word Select (LRCK)
-#define MIC_SCK 5   // Bit Clock (BCLK)
-#define MIC_SD  6   // Data Out (DOUT)
 
 static bool mic_ready = false;
 
