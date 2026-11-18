@@ -22,18 +22,18 @@ void camera_init() {
     config.pin_href = CAM_HREF;
     config.pin_sscb_sda = CAM_SIOD;
     config.pin_sscb_scl = CAM_SIOC;
-    config.pin_pwdn = -1;
-    config.pin_reset = -1;
+    config.pin_pwdn = CAM_PWDN;
+    config.pin_reset = CAM_RESET;
     config.xclk_freq_hz = 20000000;
     config.pixel_format = PIXFORMAT_JPEG;
     config.frame_size = FRAMESIZE_QVGA;
     config.jpeg_quality = 12;
-    config.fb_count = 2;
+    config.fb_count = 1;
     config.grab_mode = CAMERA_GRAB_LATEST;
     
     esp_err_t err = esp_camera_init(&config);
     if (err != ESP_OK) {
-        Serial.printf("Camera init failed: 0x%x\n", err);
+        Serial.printf("Camera init failed: 0x%x (skip)\n", err);
         cam_ready = false;
         return;
     }
@@ -57,6 +57,4 @@ bool camera_capture(uint8_t *buf, size_t len) {
     return out > 0;
 }
 
-size_t camera_frame_size() {
-    return 320 * 240 * 2;
-}
+size_t camera_frame_size() { return 320 * 240 * 2; }
