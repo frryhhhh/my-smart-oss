@@ -22,8 +22,8 @@ void camera_init() {
     config.pin_href = CAM_HREF;
     config.pin_sscb_sda = CAM_SIOD;
     config.pin_sscb_scl = CAM_SIOC;
-    config.pin_pwdn = CAM_PWDN;
-    config.pin_reset = CAM_RESET;
+    config.pin_pwdn = -1;
+    config.pin_reset = -1;
     config.xclk_freq_hz = 20000000;
     config.pixel_format = PIXFORMAT_JPEG;
     config.frame_size = FRAMESIZE_QVGA;
