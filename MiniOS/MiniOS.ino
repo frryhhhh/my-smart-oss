@@ -19,12 +19,10 @@ void setup() {
     Serial.begin(115200);
     delay(1000);
     
-    // Виртуальный GND (PIN 3) — для микрофона INMP441 L/R
     pinMode(VIRTUAL_GND, OUTPUT);
     digitalWrite(VIRTUAL_GND, LOW);
     Serial.println("Virtual GND (PIN 3) active");
     
-    // Очистка NVS
     Preferences p;
     p.begin("net", false);
     p.clear();
@@ -33,13 +31,23 @@ void setup() {
     
     hardware_init();
     
-    // Чёрный фон сразу
     lv_obj_set_style_bg_color(lv_scr_act(), lv_color_hex(0x0a0a1a), 0);
     lv_obj_set_style_bg_opa(lv_scr_act(), 255, 0);
     
     fs_init();
-    camera_init();  // Не крашит систему если ошибка
-    mic_init();     // Не крашит систему если ошибка
+    
+    #if ENABLE_CAMERA
+    camera_init();
+    #else
+    Serial.println("Camera disabled");
+    #endif
+    
+    #if ENABLE_MIC
+    mic_init();
+    #else
+    Serial.println("Mic disabled");
+    #endif
+    
     wifi_init();
     web_init();
     lockscreen_init();
