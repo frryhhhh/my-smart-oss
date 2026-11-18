@@ -1,6 +1,10 @@
 #include "mic.h"
-#include "config.h"
 #include <driver/i2s.h>
+
+// Пины микрофона INMP441 (I2S)
+#define MIC_WS  4   // Word Select (LRCK)
+#define MIC_SCK 5   // Bit Clock (BCLK)
+#define MIC_SD  6   // Data Out (DOUT)
 
 static bool mic_ready = false;
 
@@ -20,10 +24,10 @@ void mic_init() {
     };
     
     i2s_pin_config_t pin_config = {
-        .bck_io_num = I2S_SCK,
-        .ws_io_num = I2S_WS,
+        .bck_io_num = MIC_SCK,
+        .ws_io_num = MIC_WS,
         .data_out_num = I2S_PIN_NO_CHANGE,
-        .data_in_num = I2S_SD
+        .data_in_num = MIC_SD
     };
     
     esp_err_t err = i2s_driver_install(I2S_NUM_0, &i2s_config, 0, NULL);
