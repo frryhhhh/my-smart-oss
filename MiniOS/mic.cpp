@@ -1,10 +1,6 @@
 #include "mic.h"
+#include "config.h"
 #include <driver/i2s.h>
-
-#define I2S_MIC_PORT I2S_NUM_0
-#define I2S_MIC_BCLK 5
-#define I2S_MIC_WS 4
-#define I2S_MIC_DIN 6
 
 static bool mic_ready = false;
 
@@ -24,19 +20,19 @@ void mic_init() {
     };
     
     i2s_pin_config_t pin_config = {
-        .bck_io_num = I2S_MIC_BCLK,
-        .ws_io_num = I2S_MIC_WS,
+        .bck_io_num = I2S_SCK,
+        .ws_io_num = I2S_WS,
         .data_out_num = I2S_PIN_NO_CHANGE,
-        .data_in_num = I2S_MIC_DIN
+        .data_in_num = I2S_SD
     };
     
-    esp_err_t err = i2s_driver_install(I2S_MIC_PORT, &i2s_config, 0, NULL);
+    esp_err_t err = i2s_driver_install(I2S_NUM_0, &i2s_config, 0, NULL);
     if (err != ESP_OK) {
-        Serial.printf("I2S install failed: %d\n", err);
+        Serial.printf("I2S install failed: %d (skip)\n", err);
         mic_ready = false;
         return;
     }
-    i2s_set_pin(I2S_MIC_PORT, &pin_config);
+    i2s_set_pin(I2S_NUM_0, &pin_config);
     mic_ready = true;
     Serial.println("Microphone ready");
 }
@@ -46,6 +42,6 @@ bool mic_is_ready() { return mic_ready; }
 bool mic_record(uint8_t *buf, size_t len) {
     if (!mic_ready) return false;
     size_t bytes_read;
-    esp_err_t err = i2s_read(I2S_MIC_PORT, buf, len, &bytes_read, 1000);
+    esp_err_t err = i2s_read(I2S_NUM_0, buf, len, &bytes_read, 1000);
     return (err == ESP_OK && bytes_read > 0);
 }
