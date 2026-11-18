@@ -7,6 +7,8 @@
 #include "wifi_mgr.h"
 #include "web_server.h"
 #include "fs_mgr.h"
+#include "camera.h"
+#include "mic.h"
 #include "lockscreen.h"
 #include "home.h"
 
@@ -17,7 +19,12 @@ void setup() {
     Serial.begin(115200);
     delay(1000);
     
-    // СТИРАЕМ ВСЕ СОХРАНЁННЫЕ НАСТРОЙКИ
+    // Виртуальный GND (PIN 3) — для микрофона INMP441 L/R
+    pinMode(VIRTUAL_GND, OUTPUT);
+    digitalWrite(VIRTUAL_GND, LOW);
+    Serial.println("Virtual GND (PIN 3) active");
+    
+    // Очистка NVS
     Preferences p;
     p.begin("net", false);
     p.clear();
@@ -25,10 +32,14 @@ void setup() {
     Serial.println("=== NVS CLEARED ===");
     
     hardware_init();
+    
+    // Чёрный фон сразу
     lv_obj_set_style_bg_color(lv_scr_act(), lv_color_hex(0x0a0a1a), 0);
     lv_obj_set_style_bg_opa(lv_scr_act(), 255, 0);
     
     fs_init();
+    camera_init();  // Не крашит систему если ошибка
+    mic_init();     // Не крашит систему если ошибка
     wifi_init();
     web_init();
     lockscreen_init();
@@ -43,10 +54,22 @@ void loop() {
     wifi_loop();
     web_loop();
     
+    String cmd = get_last_cmd();
+    if (cmd.length() > 0) {
+        if (cmd == "up") buttons[0].state = true;
+        else if (cmd == "down") buttons[1].state = true;
+        else if (cmd == "left") buttons[2].state = true;
+        else if (cmd == "right") buttons[3].state = true;
+        else if (cmd == "ok") buttons[4].state = true;
+        else if (cmd == "home") buttons[5].state = true;
+    }
+    
     if (lockscreen_is_locked()) {
         lockscreen_update();
         if (button_pressed(4)) {
             lockscreen_unlock();
+            current_colors = themes[current_theme];
+            lv_obj_set_style_bg_color(lv_scr_act(), current_colors.bg, 0);
             home_init();
         }
     } else {
